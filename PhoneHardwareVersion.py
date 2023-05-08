@@ -1,5 +1,6 @@
 import csv
 import requests
+import re
 from bs4 import BeautifulSoup
 
 # Read URLs from input CSV file
@@ -24,21 +25,21 @@ with open('output.csv', 'w', newline='') as output_file:
         try:
             # Make a request to the URL and parse the HTML response
             response = requests.get(url)
+
             soup = BeautifulSoup(response.content, 'html.parser')
 
             # Find MAC Address, Model Number, and Hardware revision information in the HTML
-            mac_address_element = soup.find('b', string=' MAC address')
+            mac_address_element = soup.find('b', text=re.compile(r'^\s*MAC Address', re.IGNORECASE))
             mac_address = mac_address_element.find_next('b').text.strip() if mac_address_element else 'Data not found'
 
-            model_number_element = soup.find('b', string=' Model number')
+            model_number_element = soup.find('b', text=re.compile(r'^\s*Model Number', re.IGNORECASE))
             model_number = model_number_element.find_next('b').text.strip() if model_number_element else 'Data not found'
 
-            hw_revision_element = soup.find('b', string=' Hardware revision')
-            hw_revision = hw_revision_element.find_next('b').text.strip() if hw_revision_element else 'Data not found'
+            hw_revision_element = soup.find('b', text=re.compile(r'^\s*[Vv]\d{2}'))
+            hw_revision = hw_revision_element.string.strip() if hw_revision_element else 'Data not found'
 
             # Write scraped data to output CSV file
             writer.writerow([url, mac_address, model_number, hw_revision])
         except Exception as e:
             print(f"An error occurred while processing {url}: {str(e)}")
             writer.writerow([url, 'Data not found', 'Data not found', 'Data not found'])
-
